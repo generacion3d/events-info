@@ -230,7 +230,7 @@
     .embers i:nth-child(10){left:85%;--s:9px;--d:8.5s;--w:.8s;--x:-12px}
     .embers i:nth-child(11){left:92%;--s:7px;--d:6.8s;--w:2.2s;--x:10px}
     .embers i:nth-child(12){left:97%;--s:5px;--d:7.8s;--w:4.6s;--x:-16px}
-    @media(max-width:720px){ .embers i{width:calc(var(--s,8px) + 2px);height:calc(var(--s,8px) + 2px)} }
+    @media(max-width:720px){ .embers{display:none} }
 
     /* ===== RESPONSIVE ===== */
     @media(max-width:720px){
@@ -760,7 +760,7 @@
     })();
 
     const esMovil = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent);
-    const sinEfectos = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sinEfectos = esMovil || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     /* ===== PARTÍCULAS (canvas, solo computadora) ===== */
     (function(){
