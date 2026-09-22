@@ -54,7 +54,7 @@
         if (!r.ok) throw new Error('Firestore respondió ' + r.status);
         return r.json();
       }
-      const CAMPOS_EVENTO = ['titulo','descripcion','fecha','fechaTexto','botonTexto','botonLink','hora','horaFin','lugar','mapsLink','tieneAfiche','aficheVer']
+      const CAMPOS_EVENTO = ['titulo','descripcion','fecha','fechaTexto','botonTexto','botonLink','hora','horaFin','lugar','mapsLink','tieneAfiche','aficheVer','flyer']
         .map(c => '&mask.fieldPaths=' + c).join('');
 
       window.G3D = {
