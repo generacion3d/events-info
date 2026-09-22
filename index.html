@@ -207,16 +207,30 @@
     .footer-nav-center a:hover{color:#fff}
     .footer-bottom-center{margin-top:10px;font-size:.85rem;opacity:.6}
 
-    /* ===== PARTÍCULAS DOM ===== */
-    .fire-particles{position:fixed;inset:auto 0 0 0;height:65vh;pointer-events:none;z-index:5}
-    .fire-particles .particle{position:absolute;bottom:-8vh;border-radius:50%;pointer-events:none;mix-blend-mode:screen;filter:blur(.8px);background:radial-gradient(circle at 35% 30%,#fff2c8 0%,#ffdf9a 12%,#ffb36a 45%,rgba(255,80,0,0) 100%);opacity:0}
-    @keyframes fireRiseSubtle{
-      0%{transform:translate3d(0,0,0) scale(.6);opacity:0}
-      8%{opacity:.18}
-      40%{opacity:.14;transform:translate3d(var(--tx,0),-30vh,0) scale(var(--mid-scale,.9))}
-      85%{opacity:.08;transform:translate3d(calc(var(--tx,0)*.6),-70vh,0) scale(var(--end-scale,1.05))}
-      100%{opacity:0;transform:translate3d(calc(var(--tx,0)*.4),-95vh,0) scale(var(--end-scale,1.15))}
+    /* ===== BRASAS (solo CSS) ===== */
+    .embers{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+    .embers i{position:absolute;bottom:-20px;width:var(--s,8px);height:var(--s,8px);border-radius:50%;
+      background:radial-gradient(circle at 35% 30%,#fff2c8 0%,#ffcf80 20%,#ff8a2a 55%,rgba(255,80,0,0) 100%);
+      opacity:0;will-change:transform,opacity;animation:ember var(--d,6s) ease-out var(--w,0s) infinite}
+    @keyframes ember{
+      0%{transform:translate3d(0,0,0) scale(.7);opacity:0}
+      10%{opacity:.75}
+      50%{transform:translate3d(var(--x,10px),-45vh,0) scale(1);opacity:.5}
+      100%{transform:translate3d(calc(var(--x,10px)*-.5),-95vh,0) scale(.5);opacity:0}
     }
+    .embers i:nth-child(1){left:6%;--s:7px;--d:7s;--w:0s;--x:18px}
+    .embers i:nth-child(2){left:15%;--s:11px;--d:9s;--w:2.5s;--x:-14px}
+    .embers i:nth-child(3){left:24%;--s:6px;--d:6.5s;--w:1s;--x:12px}
+    .embers i:nth-child(4){left:33%;--s:9px;--d:8s;--w:4s;--x:-20px}
+    .embers i:nth-child(5){left:42%;--s:5px;--d:7.5s;--w:.5s;--x:16px}
+    .embers i:nth-child(6){left:51%;--s:10px;--d:10s;--w:3s;--x:-10px}
+    .embers i:nth-child(7){left:60%;--s:7px;--d:6s;--w:5s;--x:22px}
+    .embers i:nth-child(8){left:69%;--s:12px;--d:9.5s;--w:1.5s;--x:-18px}
+    .embers i:nth-child(9){left:77%;--s:6px;--d:7s;--w:3.5s;--x:14px}
+    .embers i:nth-child(10){left:85%;--s:9px;--d:8.5s;--w:.8s;--x:-12px}
+    .embers i:nth-child(11){left:92%;--s:7px;--d:6.8s;--w:2.2s;--x:10px}
+    .embers i:nth-child(12){left:97%;--s:5px;--d:7.8s;--w:4.6s;--x:-16px}
+    @media(max-width:720px){ .embers i{width:calc(var(--s,8px) + 2px);height:calc(var(--s,8px) + 2px)} }
 
     /* ===== RESPONSIVE ===== */
     @media(max-width:720px){
@@ -234,7 +248,7 @@
       .cd-grid{gap:6px}
     }
     @media (prefers-reduced-motion: reduce){
-      .fire-particles{display:none}
+      .embers{display:none}
       .fire-layer,.marquee-track,.cd-live{animation:none}
       html{scroll-behavior:auto}
     }
@@ -248,7 +262,7 @@
   <div class="fire-layer"></div>
   <div class="noise"></div>
   <div id="particles" aria-hidden="true"></div>
-  <div class="fire-particles" aria-hidden="true"></div>
+  <div class="embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
   <!-- NAV -->
   <nav class="topnav" id="topnav" aria-label="Principal">
@@ -715,20 +729,20 @@
         renderEventos([]);
         return;
       }
-      const [ev, gal, cfg] = await Promise.allSettled([
-        db.collection('eventos').get(),
-        db.collection('galeria').orderBy('orden').get(),
-        db.collection('config').doc('sitio').get()
-      ]);
+      db.collection('config').doc('sitio').get()
+        .then(d => { if (d.exists) aplicarConfig(d.data()); })
+        .catch(e => console.warn('Config:', e));
 
-      if (cfg.status === 'fulfilled' && cfg.value.exists) aplicarConfig(cfg.value.data());
-      if (ev.status === 'fulfilled') renderEventos(ev.value.docs.map(d => d.data()));
-      else {
-        console.warn('Eventos:', ev.reason);
-        $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Recarga la página en unos segundos.</p>';
-      }
-      if (gal.status === 'fulfilled') renderGaleria(gal.value.docs.map(d => d.data()));
-      AOS.refreshHard();
+      db.collection('eventos').get()
+        .then(snap => { renderEventos(snap.docs.map(d => d.data())); AOS.refreshHard(); })
+        .catch(e => {
+          console.warn('Eventos:', e);
+          $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Recarga la página en unos segundos.</p>';
+        });
+
+      db.collection('galeria').orderBy('orden').get()
+        .then(snap => { renderGaleria(snap.docs.map(d => d.data())); AOS.refreshHard(); })
+        .catch(e => console.warn('Galería:', e));
     })();
 
     /* ===== NAV AL HACER SCROLL ===== */
@@ -745,18 +759,18 @@
       setVh(); window.addEventListener('resize', setVh);
     })();
 
-    const sinEfectos = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent) ||
-      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const esMovil = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent);
+    const sinEfectos = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* ===== PARTÍCULAS (canvas) ===== */
+    /* ===== PARTÍCULAS (canvas, solo computadora) ===== */
     (function(){
-      if (sinEfectos) return;
+      if (sinEfectos || esMovil) return;
       const canvas = document.createElement('canvas');
       $('particles').appendChild(canvas);
       const ctx = canvas.getContext('2d');
       let w, h;
       function setSize(){
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const dpr = Math.min(esMovil ? 2 : 3, Math.max(1, window.devicePixelRatio || 1));
         w = window.innerWidth; h = window.innerHeight;
         canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
         canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -766,7 +780,7 @@
       let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(setSize, 120); });
 
       const parts = [];
-      const MAX = Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
+      const MAX = esMovil ? 8 : Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
       function spawn(){
         const mx = w * 0.08;
         parts.push({ x: mx + Math.random() * (w - mx * 2), y: h * (0.82 + Math.random() * 0.12),
@@ -800,31 +814,6 @@
       requestAnimationFrame(loop);
     })();
 
-    /* ===== PARTÍCULAS (DOM) ===== */
-    (function(){
-      if (sinEfectos) return;
-      const container = document.querySelector('.fire-particles');
-      let alive = 0, running = true;
-      document.addEventListener('visibilitychange', () => { running = !document.hidden; });
-      const rand = (a, b) => Math.random() * (b - a) + a;
-      (function create(){
-        if (running && alive < 14){
-          const el = document.createElement('span');
-          el.className = 'particle';
-          const size = Math.round(rand(4, 18));
-          el.style.width = el.style.height = size + 'px';
-          el.style.left = (Math.random() * 100) + '%';
-          el.style.setProperty('--tx', (Math.random() * 28 - 14).toFixed(1) + 'px');
-          el.style.setProperty('--mid-scale', rand(0.85, 1.02).toFixed(2));
-          el.style.setProperty('--end-scale', rand(1.02, 1.22).toFixed(2));
-          el.style.animation = `fireRiseSubtle ${Math.floor(rand(3000, 5200))}ms ease-out forwards`;
-          alive++;
-          container.appendChild(el);
-          el.addEventListener('animationend', () => { el.remove(); alive--; }, { once: true });
-        }
-        setTimeout(create, Math.floor(rand(420, 1400)));
-      })();
-    })();
 
     /* ===== RIPPLE EN BOTONES ===== */
     document.addEventListener('pointerdown', e => {
