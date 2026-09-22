@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Panel | Generación 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0a0a; --panel:#161111; --field:#1f1818; --line:rgba(255,255,255,0.09);
+      --text:#f4efe9; --muted:rgba(244,239,233,0.6);
+      --accent:#ff7a14; --lime:#b8fd00; --danger:#ff5a4f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5}
+    h1,h2{font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.5px;margin:0}
+    button,input,textarea{font:inherit;color:inherit}
+    [hidden]{display:none !important}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* LOGIN */
+    .login{min-height:100vh;display:grid;place-items:center;padding:24px}
+    .login-box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px}
+    .login-box h1{font-size:2rem;margin-bottom:4px}
+    .login-box h1 span{color:var(--accent)}
+    .login-box p{color:var(--muted);margin:0 0 22px}
+
+    /* LAYOUT */
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(13,10,10,.92);backdrop-filter:blur(8px);z-index:10}
+    .top h1{font-size:1.4rem}
+    .top h1 span{color:var(--accent)}
+    .top-right{display:flex;align-items:center;gap:12px;font-size:.85rem;color:var(--muted)}
+    .wrap{max-width:980px;margin:0 auto;padding:22px}
+    .tabs{display:flex;gap:6px;margin-bottom:22px;border-bottom:1px solid var(--line)}
+    .tab{background:none;border:none;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:700}
+    .tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+    .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;align-items:start}
+    .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+    .box h2{font-size:1.25rem;margin-bottom:14px}
+
+    /* FORM */
+    label{display:block;font-weight:600;font-size:.85rem;margin:0 0 6px}
+    .hint{font-weight:400;color:var(--muted)}
+    input[type=text],input[type=email],input[type=password],input[type=url],input[type=date],input[type=time],input[type=tel],textarea{
+      width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:14px}
+    input:focus,textarea:focus{border-color:var(--accent);outline:none}
+    input[type=date],input[type=time]{color-scheme:dark}
+    textarea{resize:vertical;min-height:44px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+
+    .btn{border:1px solid var(--line);background:var(--field);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+    .btn:hover{border-color:rgba(255,255,255,.25)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-main{background:var(--accent);border-color:var(--accent);color:#140a02}
+    .btn-main:hover{background:#ff8b33}
+    .btn-sm{padding:6px 10px;font-size:.8rem;border-radius:8px}
+    .btn-danger{color:var(--danger)}
+    .btn-link{background:none;border:none;color:var(--muted);cursor:pointer;text-decoration:underline;padding:0}
+
+    /* LISTA EVENTOS */
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--field)}
+    .item.editing{border-color:var(--accent)}
+    .item-body{flex:1;min-width:0}
+    .item-title{font-weight:800;white-space:pre-line}
+    .item-meta{font-size:.82rem;color:var(--muted)}
+    .chip{display:inline-block;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:99px;margin-right:6px}
+    .chip-up{background:rgba(184,253,0,.12);color:var(--lime)}
+    .chip-past{background:rgba(255,255,255,.07);color:var(--muted)}
+    .item-actions{display:flex;gap:6px;flex-shrink:0}
+    .empty{color:var(--muted);padding:18px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+
+    /* GALERÍA */
+    .drop{display:block;border:2px dashed var(--line);border-radius:14px;padding:26px;text-align:center;cursor:pointer;margin-bottom:18px}
+    .drop:hover{border-color:var(--accent)}
+    .drop strong{display:block;margin-bottom:4px}
+    .drop input{display:none}
+    .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+    .ph{background:var(--field);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .ph img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
+    .ph-body{padding:10px}
+    .ph-body input{margin-bottom:8px;padding:8px 10px;font-size:.85rem}
+    .ph-actions{display:flex;justify-content:space-between;gap:6px}
+    .ph-num{font-family:Anton,sans-serif;color:var(--accent);font-size:1.1rem}
+
+    .flyer-box{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+    .flyer-prev{width:84px;height:105px;border-radius:10px;background:var(--field);border:1px dashed var(--line);object-fit:cover;flex-shrink:0}
+    .flyer-box .actions{flex-direction:column;align-items:flex-start;gap:6px}
+    .file-btn input{display:none}
+    .item-thumb{width:44px;height:55px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#000}
+
+    /* TOAST */
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#241c1c;border:1px solid var(--line);padding:12px 18px;border-radius:12px;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:90vw}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast.err{border-color:var(--danger);color:#ffd3cf}
+    .err-text{color:var(--danger);font-size:.85rem;margin:-4px 0 12px}
+
+    @media(max-width:760px){
+      .cols{grid-template-columns:1fr}
+      .row2{grid-template-columns:1fr}
+      .top-right .who{display:none}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ERROR DE ARRANQUE -->
+  <section class="login" id="errorView" hidden>
+    <div class="login-box">
+      <h1>No se pudo <span>abrir</span></h1>
+      <p id="errorMsg" style="color:var(--text)"></p>
+    </div>
+  </section>
+
+  <!-- LOGIN -->
+  <section class="login" id="loginView" hidden>
+    <form class="login-box" id="loginForm">
+      <h1>GENERACIÓN <span>3D</span></h1>
+      <p>Panel para actualizar eventos y galería del sitio.</p>
+      <label for="email">Correo</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="pass">Contraseña</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+      <p class="err-text" id="loginErr" hidden></p>
+      <button class="btn btn-main" style="width:100%" type="submit" id="loginBtn">Entrar</button>
+    </form>
+  </section>
+
+  <!-- PANEL -->
+  <div id="panelView" hidden>
+    <header class="top">
+      <h1>G<span>3D</span> · Panel</h1>
+      <div class="top-right">
+        <span class="who" id="who"></span>
+        <a class="btn btn-sm" href="index.html" target="_blank">Ver sitio</a>
+        <button class="btn btn-sm" id="logoutBtn">Salir</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="tabEventos">Eventos</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="tabGaleria">Galería</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="tabSitio">Textos y redes</button>
+      </nav>
+
+      <!-- EVENTOS -->
+      <section id="tabEventos" role="tabpanel">
+        <div class="cols">
+          <form class="box" id="eventoForm">
+            <h2 id="eventoFormTitulo">Nuevo evento</h2>
+            <input type="hidden" id="evId">
+
+            <label for="evTitulo">Título <span class="hint">· Enter para partirlo en dos líneas</span></label>
+            <textarea id="evTitulo" rows="2" maxlength="80" required></textarea>
+
+            <label for="evDesc">Descripción</label>
+            <textarea id="evDesc" rows="3" maxlength="240"></textarea>
+
+            <div class="row2">
+              <div>
+                <label for="evFecha">Fecha</label>
+                <input id="evFecha" type="date" required>
+              </div>
+              <div>
+                <label for="evFechaTexto">Texto de fecha <span class="hint">· opcional</span></label>
+                <input id="evFechaTexto" type="text" maxlength="30" placeholder="Ej. JULIO 2026">
+              </div>
+            </div>
+
+            <div class="row2">
+              <div>
+                <label for="evHora">Hora de inicio <span class="hint">· opcional</span></label>
+                <input id="evHora" type="time">
+              </div>
+              <div>
+                <label for="evHoraFin">Hora de fin <span class="hint">· opcional</span></label>
+                <input id="evHoraFin" type="time">
+              </div>
+            </div>
+
+            <label for="evLugar">Lugar</label>
+            <input id="evLugar" type="text" maxlength="90" placeholder="Iglesia Metodista La Trinidad, Ciudad Quesada">
+            <label for="evMaps">Link de Google Maps o Waze <span class="hint">· opcional; si no, se busca el lugar</span></label>
+            <input id="evMaps" type="url" placeholder="https://maps.app.goo.gl/…">
+
+            <label>Afiche del evento <span class="hint">· opcional</span></label>
+            <div class="flyer-box">
+              <img class="flyer-prev" id="flyerPrev" alt="" hidden>
+              <div class="flyer-prev" id="flyerVacio"></div>
+              <div class="actions">
+                <label class="btn btn-sm file-btn" style="margin:0">Subir afiche
+                  <input type="file" id="flyerInput" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <button class="btn-link" type="button" id="flyerQuitar" hidden>Quitar afiche</button>
+                <span class="hint" id="flyerEstado" style="font-size:.8rem"></span>
+              </div>
+            </div>
+
+            <div class="row2">
+              <div>
+                <label for="evBotonTexto">Texto del botón</label>
+                <input id="evBotonTexto" type="text" maxlength="24" placeholder="INSCRIBIRME">
+              </div>
+              <div>
+                <label for="evBotonLink">Link del botón</label>
+                <input id="evBotonLink" type="url" placeholder="https://…">
+              </div>
+            </div>
+            <p class="hint" style="margin:-4px 0 16px;font-size:.82rem">Se marca como Próximo o Pasado según la fecha. El próximo evento sale con cuenta regresiva en la portada. Sin link, el botón no se muestra.</p>
+
+            <div class="actions">
+              <button class="btn btn-main" type="submit" id="evGuardar">Guardar evento</button>
+              <button class="btn" type="button" id="evCancelar" hidden>Cancelar edición</button>
+            </div>
+          </form>
+
+          <div class="box">
+            <h2>Eventos publicados</h2>
+            <div class="list" id="eventosLista"><p class="empty">Cargando…</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GALERÍA -->
+      <section id="tabGaleria" role="tabpanel" hidden>
+        <div class="box">
+          <h2>Fotos del carrusel</h2>
+          <label class="drop" id="drop">
+            <strong>Subir fotos</strong>
+            <span class="hint">Se comprimen automáticamente antes de guardarse. Recomendado: máximo 10 fotos.</span>
+            <input type="file" id="fotosInput" accept="image/jpeg,image/png,image/webp" multiple>
+          </label>
+          <p class="hint" id="subiendo" hidden></p>
+          <div class="gal" id="galeriaLista"><p class="empty">Cargando…</p></div>
+        </div>
+      </section>
+
+      <!-- SITIO -->
+      <section id="tabSitio" role="tabpanel" hidden>
+        <form class="box" id="sitioForm" style="max-width:560px">
+          <h2>Texto sobre el carrusel</h2>
+          <label for="cfgKicker">Línea pequeña</label>
+          <input id="cfgKicker" type="text" maxlength="40" placeholder="MEMORIAS 2026">
+          <label for="cfgTitulo">Título</label>
+          <input id="cfgTitulo" type="text" maxlength="60" placeholder="MARCADOS POR SU AMOR">
+          <label for="cfgTexto">Descripción</label>
+          <input id="cfgTexto" type="text" maxlength="120">
+
+          <h2 style="margin-top:10px">Redes sociales</h2>
+          <label for="cfgInstagram">Instagram</label>
+          <input id="cfgInstagram" type="url" placeholder="https://instagram.com/_generacion3d">
+          <label for="cfgTiktok">TikTok <span class="hint">· vacío = no se muestra</span></label>
+          <input id="cfgTiktok" type="url" placeholder="https://tiktok.com/@…">
+          <label for="cfgYoutube">YouTube <span class="hint">· vacío = no se muestra</span></label>
+          <input id="cfgYoutube" type="url" placeholder="https://youtube.com/@…">
+
+          <label for="cfgWhatsapp">WhatsApp de contacto <span class="hint">· 8 dígitos; vacío = no se muestra</span></label>
+          <input id="cfgWhatsapp" type="tel" maxlength="16" placeholder="8888 8888">
+
+          <button class="btn btn-main" type="submit">Guardar cambios</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    function fallo(msg){
+      $('errorMsg').textContent = msg;
+      $('errorView').hidden = false;
+      $('loginView').hidden = true;
+      $('panelView').hidden = true;
+    }
+
+    let auth, db;
+    try {
+      if (location.protocol === 'file:')
+        throw new Error('Abriste el archivo con doble clic. El login de Firebase solo funciona desde un servidor (http o https). Súbelo a tu hosting o usa Live Server en VS Code.');
+      if (!window.firebase)
+        throw new Error('No cargó la librería de Firebase. Revisa tu conexión a internet.');
+      if (!window.FIREBASE_CONFIG)
+        throw new Error('No se encontró firebase-config.js. Debe estar en la misma carpeta que admin.html.');
+      firebase.initializeApp(window.FIREBASE_CONFIG);
+      auth = firebase.auth();
+      db = firebase.firestore();
+    } catch (e) {
+      const msg = String(e.code || '').includes('invalid-api-key')
+        ? 'La apiKey de firebase-config.js no es válida. Cópiala de nuevo desde la consola de Firebase con el botón de copiar.'
+        : e.message;
+      fallo(msg);
+      throw e;
+    }
+
+    /* ---------- utilidades ---------- */
+    function esc(s){
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    let toastT;
+    function toast(msg, err){
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (err ? ' err' : '');
+      clearTimeout(toastT);
+      toastT = setTimeout(() => t.className = 'toast', 3200);
+    }
+    function mensajeError(e){
+      if (e && e.code === 'permission-denied') return 'Tu cuenta no tiene permiso para editar. Revisa las reglas de Firestore.';
+      return 'No se pudo guardar. Revisa tu conexión e intenta de nuevo.';
+    }
+    function hoyISO(){
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function linkValido(url){ return !url || /^https?:\/\//i.test(url); }
+
+    /* ---------- auth ---------- */
+    auth.onAuthStateChanged(user => {
+      $('loginView').hidden = !!user;
+      $('panelView').hidden = !user;
+      if (user){
+        $('who').textContent = user.email;
+        cargarEventos(); cargarGaleria(); cargarSitio();
+      }
+    });
+
+    setTimeout(() => {
+      if ($('loginView').hidden && $('panelView').hidden && $('errorView').hidden)
+        fallo('Firebase no respondió. Presiona F12 → Consola y revisa el mensaje en rojo.');
+    }, 8000);
+
+    $('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('loginErr').hidden = true;
+      $('loginBtn').disabled = true;
+      try {
+        await auth.signInWithEmailAndPassword($('email').value.trim(), $('pass').value);
+      } catch (err) {
+        $('loginErr').textContent = 'Correo o contraseña incorrectos.';
+        $('loginErr').hidden = false;
+      } finally {
+        $('loginBtn').disabled = false;
+      }
+    });
+    $('logoutBtn').addEventListener('click', () => auth.signOut());
+
+    /* ---------- tabs ---------- */
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t === tab));
+        document.querySelectorAll('[role=tabpanel]').forEach(p => p.hidden = p.id !== tab.dataset.tab);
+      });
+    });
+
+    /* =========================
+       EVENTOS
+       ========================= */
+    let eventos = [];
+    let flyerData = '';
+
+    function pintarFlyer(){
+      $('flyerPrev').hidden = !flyerData;
+      $('flyerVacio').hidden = !!flyerData;
+      if (flyerData) $('flyerPrev').src = flyerData;
+      $('flyerQuitar').hidden = !flyerData;
+    }
+    $('flyerInput').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      $('flyerEstado').textContent = 'Procesando…';
+      try {
+        flyerData = await comprimir(file, 1400);
+        pintarFlyer();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        $('flyerEstado').textContent = '';
+      }
+    });
+    $('flyerQuitar').addEventListener('click', () => { flyerData = ''; pintarFlyer(); });
+
+    async function cargarEventos(){
+      try {
+        const snap = await db.collection('eventos').orderBy('fecha', 'desc').get();
+        eventos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        pintarEventos();
+      } catch (e) {
+        $('eventosLista').innerHTML = '<p class="empty">No se pudieron cargar los eventos.</p>';
+      }
+    }
+
+    function pintarEventos(){
+      const lista = $('eventosLista');
+      if (!eventos.length){
+        lista.innerHTML = '<p class="empty">Todavía no hay eventos. Crea el primero con el formulario.</p>';
+        return;
+      }
+      const hoy = hoyISO();
+      const editando = $('evId').value;
+      lista.innerHTML = eventos.map(ev => {
+        const prox = ev.fecha >= hoy;
+        return `
+          <div class="item ${ev.id === editando ? 'editing' : ''}">
+            ${ev.flyer ? `<img class="item-thumb" src="${esc(ev.flyer)}" alt="">` : ''}
+            <div class="item-body">
+              <div class="item-title">${esc(ev.titulo)}</div>
+              <div class="item-meta">
+                <span class="chip ${prox ? 'chip-up' : 'chip-past'}">${prox ? 'PRÓXIMO' : 'PASADO'}</span>
+                ${esc(ev.fechaTexto || ev.fecha)}
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-sm" data-edit="${ev.id}">Editar</button>
+              <button class="btn btn-sm btn-danger" data-del="${ev.id}">Borrar</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    $('eventosLista').addEventListener('click', async e => {
+      const editId = e.target.dataset.edit, delId = e.target.dataset.del;
+      if (editId){
+        const ev = eventos.find(x => x.id === editId);
+        $('evId').value = ev.id;
+        $('evTitulo').value = ev.titulo || '';
+        $('evDesc').value = ev.descripcion || '';
+        $('evFecha').value = ev.fecha || '';
+        $('evFechaTexto').value = ev.fechaTexto || '';
+        $('evBotonTexto').value = ev.botonTexto || '';
+        $('evBotonLink').value = ev.botonLink || '';
+        $('evHora').value = ev.hora || '';
+        $('evHoraFin').value = ev.horaFin || '';
+        $('evLugar').value = ev.lugar || '';
+        $('evMaps').value = ev.mapsLink || '';
+        flyerData = ev.flyer || '';
+        pintarFlyer();
+        $('eventoFormTitulo').textContent = 'Editar evento';
+        $('evCancelar').hidden = false;
+        pintarEventos();
+        $('evTitulo').focus();
+      }
+      if (delId){
+        const ev = eventos.find(x => x.id === delId);
+        if (!confirm(`¿Borrar "${ev.titulo.replace(/\n/g,' ')}"? Esto no se puede deshacer.`)) return;
+        try {
+          await db.collection('eventos').doc(delId).delete();
+          if ($('evId').value === delId) limpiarEvento();
+          toast('Evento borrado');
+          cargarEventos();
+        } catch (err) { toast(mensajeError(err), true); }
+      }
+    });
+
+    function limpiarEvento(){
+      $('eventoForm').reset();
+      $('evId').value = '';
+      flyerData = '';
+      pintarFlyer();
+      $('eventoFormTitulo').textContent = 'Nuevo evento';
+      $('evCancelar').hidden = true;
+      pintarEventos();
+    }
+    $('evCancelar').addEventListener('click', limpiarEvento);
+
+    $('eventoForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const link = $('evBotonLink').value.trim();
+      const maps = $('evMaps').value.trim();
+      if (!linkValido(link) || !linkValido(maps)){ toast('Los links deben empezar con https://', true); return; }
+
+      const datos = {
+        titulo: $('evTitulo').value.trim(),
+        descripcion: $('evDesc').value.trim(),
+        fecha: $('evFecha').value,
+        fechaTexto: $('evFechaTexto').value.trim(),
+        botonTexto: $('evBotonTexto').value.trim(),
+        botonLink: link,
+        hora: $('evHora').value,
+        horaFin: $('evHoraFin').value,
+        lugar: $('evLugar').value.trim(),
+        mapsLink: maps,
+        flyer: flyerData,
+        actualizado: Date.now()
+      };
+      const id = $('evId').value;
+      $('evGuardar').disabled = true;
+      try {
+        if (id) await db.collection('eventos').doc(id).set(datos);
+        else    await db.collection('eventos').add(datos);
+        toast(id ? 'Evento actualizado' : 'Evento publicado');
+        limpiarEvento();
+        cargarEventos();
+      } catch (err) {
+        toast(mensajeError(err), true);
+      } finally {
+        $('evGuardar').disabled = false;
+      }
+    });
+
+    /* =========================
+       GALERÍA
+       ========================= */
+    let fotos = [];
+    const LIMITE_BYTES = 450000; // ~450 KB por foto (Firestore acepta hasta 1 MB por documento)
+
+    async function cargarGaleria(){
+      try {
+        const snap = await db.collection('galeria').orderBy('orden').get();
+        fotos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        pintarGaleria();
+      } catch (e) {
+        $('galeriaLista').innerHTML = '<p class="empty">No se pudo cargar la galería.</p>';
+      }
+    }
+
+    function pintarGaleria(){
+      const cont = $('galeriaLista');
+      if (!fotos.length){
+        cont.innerHTML = '<p class="empty" style="grid-column:1/-1">Sin fotos. Mientras esté vacía, la sección Galería no aparece en el sitio.</p>';
+        return;
+      }
+      cont.innerHTML = fotos.map((f, i) => `
+        <div class="ph">
+          <img src="${esc(f.imagen)}" alt="">
+          <div class="ph-body">
+            <input type="text" placeholder="Descripción (accesibilidad)" value="${esc(f.alt || '')}" data-alt="${f.id}" maxlength="80">
+            <div class="ph-actions">
+              <span class="ph-num">${i + 1}</span>
+              <span>
+                <button class="btn btn-sm" data-up="${f.id}" ${i === 0 ? 'disabled' : ''} aria-label="Mover antes">↑</button>
+                <button class="btn btn-sm" data-down="${f.id}" ${i === fotos.length - 1 ? 'disabled' : ''} aria-label="Mover después">↓</button>
+                <button class="btn btn-sm btn-danger" data-del="${f.id}">Borrar</button>
+              </span>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    function cargarImagen(file){
+      return new Promise((res, rej) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); res(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen')); };
+        img.src = url;
+      });
+    }
+
+    async function comprimir(file, ladoInicial = 1600){
+      const img = await cargarImagen(file);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      let lado = ladoInicial, calidad = 0.78;
+
+      while (lado >= 600){
+        const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+        canvas.width = Math.round(img.naturalWidth * escala);
+        canvas.height = Math.round(img.naturalHeight * escala);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = canvas.toDataURL('image/jpeg', calidad);
+        if (data.length <= LIMITE_BYTES) return data;
+        calidad -= 0.1;
+        if (calidad < 0.5){ calidad = 0.72; lado = Math.round(lado * 0.8); }
+      }
+      throw new Error('La foto es demasiado pesada incluso comprimida');
+    }
+
+    $('fotosInput').addEventListener('change', async e => {
+      const archivos = Array.from(e.target.files);
+      e.target.value = '';
+      if (!archivos.length) return;
+
+      const estado = $('subiendo');
+      estado.hidden = false;
+      let orden = fotos.length ? Math.max(...fotos.map(f => f.orden || 0)) + 1 : 1;
+      let ok = 0;
+
+      for (let i = 0; i < archivos.length; i++){
+        estado.textContent = `Procesando foto ${i + 1} de ${archivos.length}…`;
+        try {
+          const imagen = await comprimir(archivos[i]);
+          await db.collection('galeria').add({ imagen, alt: '', orden: orden++, creado: Date.now() });
+          ok++;
+        } catch (err) {
+          toast(`${archivos[i].name}: ${err.code ? mensajeError(err) : err.message}`, true);
+        }
+      }
+      estado.hidden = true;
+      if (ok) toast(ok === 1 ? 'Foto agregada' : `${ok} fotos agregadas`);
+      cargarGaleria();
+    });
+
+    $('galeriaLista').addEventListener('click', async e => {
+      const { up, down, del } = e.target.dataset;
+      try {
+        if (del){
+          if (!confirm('¿Borrar esta foto del carrusel?')) return;
+          await db.collection('galeria').doc(del).delete();
+          toast('Foto borrada');
+          return cargarGaleria();
+        }
+        const id = up || down;
+        if (!id) return;
+        const i = fotos.findIndex(f => f.id === id);
+        const j = up ? i - 1 : i + 1;
+        if (j < 0 || j >= fotos.length) return;
+        const a = fotos[i], b = fotos[j];
+        const batch = db.batch();
+        batch.update(db.collection('galeria').doc(a.id), { orden: b.orden });
+        batch.update(db.collection('galeria').doc(b.id), { orden: a.orden });
+        await batch.commit();
+        cargarGaleria();
+      } catch (err) { toast(mensajeError(err), true); }
+    });
+
+    $('galeriaLista').addEventListener('change', async e => {
+      const id = e.target.dataset.alt;
+      if (!id) return;
+      try {
+        await db.collection('galeria').doc(id).update({ alt: e.target.value.trim() });
+        toast('Descripción guardada');
+      } catch (err) { toast(mensajeError(err), true); }
+    });
+
+    /* =========================
+       TEXTOS Y REDES
+       ========================= */
+    const CAMPOS_SITIO = {
+      galeriaKicker: 'cfgKicker', galeriaTitulo: 'cfgTitulo', galeriaTexto: 'cfgTexto',
+      instagram: 'cfgInstagram', tiktok: 'cfgTiktok', youtube: 'cfgYoutube', whatsapp: 'cfgWhatsapp'
+    };
+
+    async function cargarSitio(){
+      try {
+        const doc = await db.collection('config').doc('sitio').get();
+        const d = doc.exists ? doc.data() : {};
+        Object.entries(CAMPOS_SITIO).forEach(([campo, id]) => $(id).value = d[campo] || '');
+      } catch (e) { toast('No se pudieron cargar los textos.', true); }
+    }
+
+    $('sitioForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const datos = {};
+      for (const [campo, id] of Object.entries(CAMPOS_SITIO)){
+        datos[campo] = $(id).value.trim();
+      }
+      if (![datos.instagram, datos.tiktok, datos.youtube].every(linkValido)){
+        toast('Los links deben empezar con https://', true); return;
+      }
+      try {
+        await db.collection('config').doc('sitio').set(datos, { merge: true });
+        toast('Cambios guardados');
+      } catch (err) { toast(mensajeError(err), true); }
+    });
+  </script>
+</body>
+</html>
