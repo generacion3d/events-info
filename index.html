@@ -745,8 +745,8 @@
       setVh(); window.addEventListener('resize', setVh);
     })();
 
-    const esMovil = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent);
-    const sinEfectos = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sinEfectos = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     /* ===== PARTÍCULAS (canvas) ===== */
     (function(){
@@ -756,7 +756,7 @@
       const ctx = canvas.getContext('2d');
       let w, h;
       function setSize(){
-        const dpr = Math.min(esMovil ? 2 : 3, Math.max(1, window.devicePixelRatio || 1));
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
         w = window.innerWidth; h = window.innerHeight;
         canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
         canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -766,7 +766,7 @@
       let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(setSize, 120); });
 
       const parts = [];
-      const MAX = esMovil ? 8 : Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
+      const MAX = Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
       function spawn(){
         const mx = w * 0.08;
         parts.push({ x: mx + Math.random() * (w - mx * 2), y: h * (0.82 + Math.random() * 0.12),
@@ -808,10 +808,10 @@
       document.addEventListener('visibilitychange', () => { running = !document.hidden; });
       const rand = (a, b) => Math.random() * (b - a) + a;
       (function create(){
-        if (running && alive < (esMovil ? 7 : 14)){
+        if (running && alive < 14){
           const el = document.createElement('span');
           el.className = 'particle';
-          const size = Math.round(esMovil ? rand(5, 14) : rand(4, 18));
+          const size = Math.round(rand(4, 18));
           el.style.width = el.style.height = size + 'px';
           el.style.left = (Math.random() * 100) + '%';
           el.style.setProperty('--tx', (Math.random() * 28 - 14).toFixed(1) + 'px');
@@ -822,7 +822,7 @@
           container.appendChild(el);
           el.addEventListener('animationend', () => { el.remove(); alive--; }, { once: true });
         }
-        setTimeout(create, Math.floor(esMovil ? rand(700, 1800) : rand(420, 1400)));
+        setTimeout(create, Math.floor(rand(420, 1400)));
       })();
     })();
 
