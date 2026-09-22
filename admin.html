@@ -378,7 +378,7 @@
       if (!file) return;
       $('flyerEstado').textContent = 'Procesando…';
       try {
-        flyerData = await comprimir(file, 1400);
+        flyerData = await comprimir(file, 1200);
         pintarFlyer();
       } catch (err) {
         toast(err.message, true);
@@ -393,8 +393,35 @@
         const snap = await db.collection('eventos').orderBy('fecha', 'desc').get();
         eventos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         pintarEventos();
+        migrarAfichesViejos();
       } catch (e) {
         $('eventosLista').innerHTML = '<p class="empty">No se pudieron cargar los eventos.</p>';
+      }
+    }
+
+    // Los afiches se guardan aparte (colección "afiches") para que la web cargue rápido.
+    // Si hay eventos con el afiche adentro (versión anterior), se mueven solos.
+    async function migrarAfichesViejos(){
+      const viejos = eventos.filter(ev => ev.flyer);
+      if (!viejos.length) return;
+      try {
+        for (const ev of viejos){
+          const batch = db.batch();
+          batch.set(db.collection('afiches').doc(ev.id), { imagen: ev.flyer });
+          batch.update(db.collection('eventos').doc(ev.id), {
+            flyer: firebase.firestore.FieldValue.delete(),
+            tieneAfiche: true,
+            aficheVer: Date.now()
+          });
+          await batch.commit();
+        }
+        toast('Afiches optimizados para carga rápida ✔');
+        const snap = await db.collection('eventos').orderBy('fecha', 'desc').get();
+        eventos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        pintarEventos();
+      } catch (e) {
+        console.warn('No se pudieron mover los afiches:', e);
+        if (e.code === 'permission-denied') toast('Actualiza las reglas de Firestore (falta la colección afiches).', true);
       }
     }
 
@@ -410,7 +437,7 @@
         const prox = ev.fecha >= hoy;
         return `
           <div class="item ${ev.id === editando ? 'editing' : ''}">
-            ${ev.flyer ? `<img class="item-thumb" src="${esc(ev.flyer)}" alt="">` : ''}
+            ${ev.flyer ? `<img class="item-thumb" src="${esc(ev.flyer)}" alt="">` : (ev.tieneAfiche ? '<div class="item-thumb" style="display:grid;place-items:center;font-size:1.2rem">🖼️</div>' : '')}
             <div class="item-body">
               <div class="item-title">${esc(ev.titulo)}</div>
               <div class="item-meta">
@@ -443,6 +470,14 @@
         $('evMaps').value = ev.mapsLink || '';
         flyerData = ev.flyer || '';
         pintarFlyer();
+        if (!flyerData && ev.tieneAfiche){
+          $('flyerEstado').textContent = 'Cargando afiche…';
+          db.collection('afiches').doc(ev.id).get().then(d => {
+            if ($('evId').value !== ev.id) return;
+            flyerData = d.exists ? (d.data().imagen || '') : '';
+            pintarFlyer();
+          }).finally(() => $('flyerEstado').textContent = '');
+        }
         $('eventoFormTitulo').textContent = 'Editar evento';
         $('evCancelar').hidden = false;
         pintarEventos();
@@ -452,7 +487,10 @@
         const ev = eventos.find(x => x.id === delId);
         if (!confirm(`¿Borrar "${ev.titulo.replace(/\n/g,' ')}"? Esto no se puede deshacer.`)) return;
         try {
-          await db.collection('eventos').doc(delId).delete();
+          const batch = db.batch();
+          batch.delete(db.collection('eventos').doc(delId));
+          batch.delete(db.collection('afiches').doc(delId));
+          await batch.commit();
           if ($('evId').value === delId) limpiarEvento();
           toast('Evento borrado');
           cargarEventos();
@@ -488,14 +526,19 @@
         horaFin: $('evHoraFin').value,
         lugar: $('evLugar').value.trim(),
         mapsLink: maps,
-        flyer: flyerData,
+        tieneAfiche: !!flyerData,
+        aficheVer: Date.now(),
         actualizado: Date.now()
       };
       const id = $('evId').value;
       $('evGuardar').disabled = true;
       try {
-        if (id) await db.collection('eventos').doc(id).set(datos);
-        else    await db.collection('eventos').add(datos);
+        const ref = id ? db.collection('eventos').doc(id) : db.collection('eventos').doc();
+        const batch = db.batch();
+        batch.set(ref, datos);
+        if (flyerData) batch.set(db.collection('afiches').doc(ref.id), { imagen: flyerData });
+        else batch.delete(db.collection('afiches').doc(ref.id));
+        await batch.commit();
         toast(id ? 'Evento actualizado' : 'Evento publicado');
         limpiarEvento();
         cargarEventos();
@@ -510,7 +553,7 @@
        GALERÍA
        ========================= */
     let fotos = [];
-    const LIMITE_BYTES = 450000; // ~450 KB por foto (Firestore acepta hasta 1 MB por documento)
+    const LIMITE_BYTES = 300000; // ~300 KB por foto: suficiente calidad para celular y carga mucho más rápido
 
     async function cargarGaleria(){
       try {
@@ -555,11 +598,11 @@
       });
     }
 
-    async function comprimir(file, ladoInicial = 1600){
+    async function comprimir(file, ladoInicial = 1400){
       const img = await cargarImagen(file);
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      let lado = ladoInicial, calidad = 0.78;
+      let lado = ladoInicial, calidad = 0.8;
 
       while (lado >= 600){
         const escala = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));

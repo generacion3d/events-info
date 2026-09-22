@@ -17,9 +17,17 @@
   <meta property="og:url" content="https://TU-DOMINIO/">
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Conexiones anticipadas: ganan tiempo antes de pedir fuentes, íconos y datos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+  <!-- Íconos y animaciones: se cargan sin frenar la página -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
 
   <style>
     :root {
@@ -135,8 +143,11 @@
     .event-card:hover{transform:translateY(-6px);border-color:rgba(255,122,20,.4);box-shadow:0 20px 40px rgba(0,0,0,.4)}
     .event-card:hover::before{opacity:1}
     .event-flyer{display:block;width:100%;aspect-ratio:16/10;padding:0;border:0;background:#000;overflow:hidden;cursor:zoom-in}
-    .event-flyer img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .6s var(--ease)}
+    .event-flyer img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .6s var(--ease),opacity .4s}
     .event-card:hover .event-flyer img{transform:scale(1.04)}
+    .event-flyer.cargando{cursor:default;background:linear-gradient(100deg,#141010 30%,#241b16 50%,#141010 70%);background-size:300% 100%;animation:shimmer 1.4s linear infinite}
+    .event-flyer.cargando img{opacity:0}
+    @keyframes shimmer{to{background-position:-150% 0}}
     .event-main{position:relative;display:flex;flex-direction:column;flex:1;padding:28px}
     .event-status{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:100px;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;width:fit-content;margin-bottom:16px}
     .status--past{background:rgba(255,255,255,.04);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.08)}
@@ -207,30 +218,16 @@
     .footer-nav-center a:hover{color:#fff}
     .footer-bottom-center{margin-top:10px;font-size:.85rem;opacity:.6}
 
-    /* ===== BRASAS (solo CSS) ===== */
-    .embers{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
-    .embers i{position:absolute;bottom:-20px;width:var(--s,8px);height:var(--s,8px);border-radius:50%;
-      background:radial-gradient(circle at 35% 30%,#fff2c8 0%,#ffcf80 20%,#ff8a2a 55%,rgba(255,80,0,0) 100%);
-      opacity:0;will-change:transform,opacity;animation:ember var(--d,6s) ease-out var(--w,0s) infinite}
-    @keyframes ember{
-      0%{transform:translate3d(0,0,0) scale(.7);opacity:0}
-      10%{opacity:.75}
-      50%{transform:translate3d(var(--x,10px),-45vh,0) scale(1);opacity:.5}
-      100%{transform:translate3d(calc(var(--x,10px)*-.5),-95vh,0) scale(.5);opacity:0}
+    /* ===== PARTÍCULAS DOM ===== */
+    .fire-particles{position:fixed;inset:auto 0 0 0;height:65vh;pointer-events:none;z-index:5}
+    .fire-particles .particle{position:absolute;bottom:-8vh;border-radius:50%;pointer-events:none;mix-blend-mode:screen;filter:blur(.8px);background:radial-gradient(circle at 35% 30%,#fff2c8 0%,#ffdf9a 12%,#ffb36a 45%,rgba(255,80,0,0) 100%);opacity:0}
+    @keyframes fireRiseSubtle{
+      0%{transform:translate3d(0,0,0) scale(.6);opacity:0}
+      8%{opacity:.18}
+      40%{opacity:.14;transform:translate3d(var(--tx,0),-30vh,0) scale(var(--mid-scale,.9))}
+      85%{opacity:.08;transform:translate3d(calc(var(--tx,0)*.6),-70vh,0) scale(var(--end-scale,1.05))}
+      100%{opacity:0;transform:translate3d(calc(var(--tx,0)*.4),-95vh,0) scale(var(--end-scale,1.15))}
     }
-    .embers i:nth-child(1){left:6%;--s:7px;--d:7s;--w:0s;--x:18px}
-    .embers i:nth-child(2){left:15%;--s:11px;--d:9s;--w:2.5s;--x:-14px}
-    .embers i:nth-child(3){left:24%;--s:6px;--d:6.5s;--w:1s;--x:12px}
-    .embers i:nth-child(4){left:33%;--s:9px;--d:8s;--w:4s;--x:-20px}
-    .embers i:nth-child(5){left:42%;--s:5px;--d:7.5s;--w:.5s;--x:16px}
-    .embers i:nth-child(6){left:51%;--s:10px;--d:10s;--w:3s;--x:-10px}
-    .embers i:nth-child(7){left:60%;--s:7px;--d:6s;--w:5s;--x:22px}
-    .embers i:nth-child(8){left:69%;--s:12px;--d:9.5s;--w:1.5s;--x:-18px}
-    .embers i:nth-child(9){left:77%;--s:6px;--d:7s;--w:3.5s;--x:14px}
-    .embers i:nth-child(10){left:85%;--s:9px;--d:8.5s;--w:.8s;--x:-12px}
-    .embers i:nth-child(11){left:92%;--s:7px;--d:6.8s;--w:2.2s;--x:10px}
-    .embers i:nth-child(12){left:97%;--s:5px;--d:7.8s;--w:4.6s;--x:-16px}
-    @media(max-width:720px){ .embers{display:none} }
 
     /* ===== RESPONSIVE ===== */
     @media(max-width:720px){
@@ -248,10 +245,11 @@
       .cd-grid{gap:6px}
     }
     @media (prefers-reduced-motion: reduce){
-      .embers{display:none}
-      .fire-layer,.marquee-track,.cd-live{animation:none}
+      .fire-particles{display:none}
+      .fire-layer,.marquee-track,.cd-live,.event-flyer.cargando{animation:none}
       html{scroll-behavior:auto}
     }
+    .sin-aos [data-aos]{opacity:1 !important;transform:none !important}
     :focus{outline:none}
     :focus-visible{outline:3px solid rgba(184,253,0,.7);outline-offset:3px}
   </style>
@@ -262,11 +260,11 @@
   <div class="fire-layer"></div>
   <div class="noise"></div>
   <div id="particles" aria-hidden="true"></div>
-  <div class="embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="fire-particles" aria-hidden="true"></div>
 
   <!-- NAV -->
   <nav class="topnav" id="topnav" aria-label="Principal">
-    <a href="#top" class="nav-brand" aria-label="Inicio"><img src="assets/images/logo.jpg" alt=""><span>GENERACIÓN <b>3D</b></span></a>
+    <a href="#top" class="nav-brand" aria-label="Inicio"><img src="assets/images/logo.jpg" alt="" width="34" height="34"><span>GENERACIÓN <b>3D</b></span></a>
     <div class="nav-links">
       <a href="#about">Movimiento</a>
       <a href="#eventos">Eventos</a>
@@ -278,7 +276,7 @@
   <!-- HERO -->
   <header class="hero" role="banner">
     <div class="hero__spot" aria-hidden="true"></div>
-    <img src="assets/images/logo.jpg" alt="Generación 3D" class="logo" data-aos="fade-down" data-aos-duration="1000">
+    <img src="assets/images/logo.jpg" alt="Generación 3D" class="logo" fetchpriority="high" data-aos="fade-down" data-aos-duration="1000">
 
     <div class="hero-bottom">
       <div class="kicker" data-aos="fade-up">MOVIMIENTO JUVENIL</div>
@@ -386,7 +384,7 @@
   <footer class="site-footer-centered" role="contentinfo">
     <div class="container footer-content">
       <div class="footer-brand-center">
-        <img src="assets/images/logo.jpg" alt="Generación 3D">
+        <img src="assets/images/logo.jpg" alt="Generación 3D" loading="lazy" width="80" height="80">
         <div>
           <div class="brand-title">GENERACIÓN <span class="brand-accent">3D</span></div>
           <div class="muted">DIFERENTE • DESTACA • DA MÁS</div>
@@ -417,12 +415,16 @@
     <div class="lb-count" id="lbCount"></div>
   </div>
 
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
   <script src="firebase-config.js"></script>
   <script>
-    AOS.init({ duration: 700, once: true });
+    // Si la librería de animaciones no carga, la página sigue funcionando igual
+    const hayAOS = typeof window.AOS !== 'undefined';
+    if (hayAOS) AOS.init({ duration: 700, once: true });
+    else document.documentElement.classList.add('sin-aos');
+    const refrescarAOS = () => { if (hayAOS) refrescarAOS(); };
     const $ = id => document.getElementById(id);
     $('year').textContent = new Date().getFullYear();
 
@@ -539,7 +541,9 @@
     /* ===== CUENTA REGRESIVA + CTA ===== */
     let cdTimer;
     function iniciarCountdown(ev){
-      if (!ev) return;
+      clearInterval(cdTimer);
+      if (!ev){ $('countdown').hidden = true; return; }
+      $('cdGrid').hidden = false; $('cdToday').hidden = true;
       $('cdTitle').textContent = unaLinea(ev.titulo);
       const horario = textoHorario(ev);
       $('cdDate').textContent = [textoFecha(ev), horario, ev.lugar].filter(Boolean).join(' · ');
@@ -570,7 +574,9 @@
     }
 
     /* ===== EVENTOS ===== */
-    let flyers = [];
+    const afichesCache = {};          // "id:versión" -> imagen
+    const afichesPendientes = new Set();
+
     function renderEventos(lista){
       const grid = $('eventsGrid');
       const t = hoy();
@@ -586,16 +592,14 @@
         return;
       }
 
-      flyers = [];
       grid.innerHTML = todos.map((e, i) => {
         const proximo = e._f >= t;
         const destacado = proximo && i === 0;
-        const flyer = imagenSegura(e.flyer);
-        let flyerHTML = '';
-        if (flyer){
-          flyers.push({ src: flyer, alt: 'Afiche: ' + unaLinea(e.titulo) });
-          flyerHTML = `<button class="event-flyer" data-flyer="${flyers.length - 1}" aria-label="Ver afiche en grande"><img src="${esc(flyer)}" alt="" loading="lazy"></button>`;
-        }
+        const clave = e.id + ':' + (e.aficheVer || 0);
+        const flyer = imagenSegura(e.flyer) || afichesCache[clave] || '';
+        const flyerHTML = (flyer || e.tieneAfiche)
+          ? `<button class="event-flyer ${flyer ? '' : 'cargando'}" data-ev="${esc(e.id)}" data-clave="${esc(clave)}" aria-label="Ver afiche en grande"><img ${flyer ? `src="${esc(flyer)}"` : ''} alt="" decoding="async"></button>`
+          : '';
         const link = urlSegura(e.botonLink);
         const boton = (link && e.botonTexto)
           ? `<a class="btn ${proximo ? 'btn--primary' : ''}" href="${esc(link)}" target="_blank" rel="noopener"><span>${esc(e.botonTexto)}</span></a>` : '';
@@ -636,66 +640,92 @@
         });
       });
     }
+
     $('eventsGrid').addEventListener('click', e => {
-      const b = e.target.closest('[data-flyer]');
-      if (b) abrirLightbox(flyers, Number(b.dataset.flyer));
+      const b = e.target.closest('.event-flyer');
+      const src = b && b.querySelector('img').getAttribute('src');
+      if (src) abrirLightbox([{ src, alt: 'Afiche del evento' }], 0);
     });
 
-    /* ===== GALERÍA ===== */
-    let fotosGaleria = [], idxGaleria = 0;
-    function renderGaleria(fotos){
-      fotosGaleria = fotos.filter(f => imagenSegura(f.imagen)).map((f, i) => ({ src: f.imagen, alt: f.alt || 'Memoria ' + (i + 1) }));
-      if (!fotosGaleria.length) return;
-      $('p-track').innerHTML = fotosGaleria.map((f, i) =>
-        `<div class="slide"><img src="${esc(f.src)}" alt="${esc(f.alt)}" ${i > 0 ? 'loading="lazy"' : ''}></div>`).join('');
-      $('galeria').hidden = false;
-      document.querySelectorAll('.link-galeria').forEach(a => a.hidden = false);
-      initCarousel();
+    // Los afiches se descargan DESPUÉS de mostrar el texto de los eventos
+    function cargarAfiches(db){
+      document.querySelectorAll('.event-flyer.cargando').forEach(btn => {
+        const id = btn.dataset.ev, clave = btn.dataset.clave;
+        const poner = src => {
+          document.querySelectorAll('.event-flyer').forEach(b => {
+            if (b.dataset.clave !== clave) return;
+            b.querySelector('img').src = src;
+            b.classList.remove('cargando');
+          });
+        };
+        const quitar = () => document.querySelectorAll('.event-flyer').forEach(b => { if (b.dataset.clave === clave) b.remove(); });
+
+        if (afichesCache[clave]) return poner(afichesCache[clave]);
+        if (afichesPendientes.has(clave)) return;
+        afichesPendientes.add(clave);
+
+        cacheLuegoServidor(db.collection('afiches').doc(id), snap => {
+          const src = snap.exists ? imagenSegura(snap.data().imagen) : '';
+          if (src){ afichesCache[clave] = src; poner(src); }
+          else if (!snap.metadata.fromCache) quitar();
+        }).catch(quitar);
+      });
     }
 
-    function initCarousel(){
-      const track = $('p-track');
-      const slides = Array.from(track.children);
-      const dotsWrap = $('p-dots');
-      const varias = slides.length > 1;
-      $('p-left').hidden = $('p-right').hidden = dotsWrap.hidden = !varias;
+    /* ===== GALERÍA ===== */
+    let fotosGaleria = [], idxGaleria = 0, firmaGaleria = '', galeriaLista = false, autoplay;
 
-      const go = to => {
-        idxGaleria = (to + slides.length) % slides.length;
-        track.style.transform = `translateX(-${idxGaleria * 100}%)`;
-        Array.from(dotsWrap.children).forEach((d, i) => d.classList.toggle('active', i === idxGaleria));
-      };
+    function irA(to){
+      const n = fotosGaleria.length;
+      if (!n) return;
+      idxGaleria = (to + n) % n;
+      $('p-track').style.transform = `translateX(-${idxGaleria * 100}%)`;
+      Array.from($('p-dots').children).forEach((d, i) => d.classList.toggle('active', i === idxGaleria));
+    }
+    function startAuto(){
+      clearInterval(autoplay);
+      if (fotosGaleria.length > 1) autoplay = setInterval(() => { if ($('lightbox').hidden) irA(idxGaleria + 1); }, 5000);
+    }
 
-      track.addEventListener('click', () => abrirLightbox(fotosGaleria, idxGaleria));
-      $('p-expand').addEventListener('click', () => abrirLightbox(fotosGaleria, idxGaleria));
-      if (!varias) return;
+    function renderGaleria(docs){
+      const nuevas = docs.filter(f => imagenSegura(f.imagen)).map((f, i) => ({ id: f.id, src: f.imagen, alt: f.alt || 'Memoria ' + (i + 1) }));
+      const firma = nuevas.map(f => f.id + '|' + f.alt).join(',');
+      if (firma === firmaGaleria) return;       // nada cambió: no se vuelve a pintar
+      firmaGaleria = firma;
+      fotosGaleria = nuevas;
 
-      dotsWrap.innerHTML = '';
-      slides.forEach((_, i) => {
-        const b = document.createElement('button');
-        b.className = 'dot' + (i === 0 ? ' active' : '');
-        b.setAttribute('aria-label', 'Ir a la foto ' + (i + 1));
-        b.addEventListener('click', () => go(i));
-        dotsWrap.appendChild(b);
-      });
-      $('p-left').addEventListener('click', () => go(idxGaleria - 1));
-      $('p-right').addEventListener('click', () => go(idxGaleria + 1));
+      if (!nuevas.length){ $('galeria').hidden = true; clearInterval(autoplay); return; }
 
-      let startX = null;
-      track.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
-      track.addEventListener('touchend', e => {
-        if (startX === null) return;
-        const dx = startX - e.changedTouches[0].clientX;
-        if (Math.abs(dx) > 40) go(idxGaleria + (dx > 0 ? 1 : -1));
-        startX = null;
-      });
+      $('p-track').innerHTML = nuevas.map((f, i) =>
+        `<div class="slide"><img src="${esc(f.src)}" alt="${esc(f.alt)}" decoding="async" ${i > 0 ? 'loading="lazy"' : ''}></div>`).join('');
+      const varias = nuevas.length > 1;
+      $('p-left').hidden = $('p-right').hidden = $('p-dots').hidden = !varias;
+      $('p-dots').innerHTML = varias
+        ? nuevas.map((_, i) => `<button class="dot" data-i="${i}" aria-label="Ir a la foto ${i + 1}"></button>`).join('') : '';
+      irA(0);
+      $('galeria').hidden = false;
+      document.querySelectorAll('.link-galeria').forEach(a => a.hidden = false);
 
-      let autoplay;
-      const startAuto = () => { clearInterval(autoplay); autoplay = setInterval(() => { if ($('lightbox').hidden) go(idxGaleria + 1); }, 5000); };
-      const stopAuto = () => clearInterval(autoplay);
+      if (!galeriaLista){
+        galeriaLista = true;
+        const track = $('p-track'), poster = $('galeria').querySelector('.poster');
+        track.addEventListener('click', () => abrirLightbox(fotosGaleria, idxGaleria));
+        $('p-expand').addEventListener('click', () => abrirLightbox(fotosGaleria, idxGaleria));
+        $('p-left').addEventListener('click', () => irA(idxGaleria - 1));
+        $('p-right').addEventListener('click', () => irA(idxGaleria + 1));
+        $('p-dots').addEventListener('click', e => { const d = e.target.closest('.dot'); if (d) irA(Number(d.dataset.i)); });
+        let startX = null;
+        track.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+        track.addEventListener('touchend', e => {
+          if (startX === null) return;
+          const dx = startX - e.changedTouches[0].clientX;
+          if (Math.abs(dx) > 40) irA(idxGaleria + (dx > 0 ? 1 : -1));
+          startX = null;
+        });
+        poster.addEventListener('mouseenter', () => clearInterval(autoplay));
+        poster.addEventListener('mouseleave', startAuto);
+      }
       startAuto();
-      $('galeria').querySelector('.poster').addEventListener('mouseenter', stopAuto);
-      $('galeria').querySelector('.poster').addEventListener('mouseleave', startAuto);
     }
 
     /* ===== CONFIG DEL SITIO ===== */
@@ -719,30 +749,51 @@
     }
 
     /* ===== CARGA DESDE FIRESTORE ===== */
+    // Muestra primero lo guardado en el teléfono (desde la 2.ª visita es instantáneo)
+    // y después actualiza con lo último de internet.
+    function cacheLuegoServidor(ref, pintar){
+      return ref.get({ source: 'cache' })
+        .then(snap => { if (snap.exists !== false && snap.empty !== true) pintar(snap); })
+        .catch(() => {})
+        .then(() => ref.get())
+        .then(pintar);
+    }
+
     (async function cargarContenido(){
       let db;
       try {
         firebase.initializeApp(window.FIREBASE_CONFIG);
         db = firebase.firestore();
+        try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* sin caché en este navegador; sigue normal */ }
       } catch (e) {
         console.error('Firebase no se pudo inicializar:', e);
         renderEventos([]);
         return;
       }
-      db.collection('config').doc('sitio').get()
-        .then(d => { if (d.exists) aplicarConfig(d.data()); })
+
+      cacheLuegoServidor(db.collection('config').doc('sitio'), d => { if (d.exists) aplicarConfig(d.data()); })
         .catch(e => console.warn('Config:', e));
 
-      db.collection('eventos').get()
-        .then(snap => { renderEventos(snap.docs.map(d => d.data())); AOS.refreshHard(); })
-        .catch(e => {
-          console.warn('Eventos:', e);
-          $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Recarga la página en unos segundos.</p>';
-        });
+      // La galería (lo más pesado) arranca cuando los eventos ya están en pantalla
+      let galeriaIniciada = false;
+      const iniciarGaleria = () => {
+        if (galeriaIniciada) return;
+        galeriaIniciada = true;
+        cacheLuegoServidor(db.collection('galeria').orderBy('orden'), snap => {
+          renderGaleria(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          refrescarAOS();
+        }).catch(e => console.warn('Galería:', e));
+      };
 
-      db.collection('galeria').orderBy('orden').get()
-        .then(snap => { renderGaleria(snap.docs.map(d => d.data())); AOS.refreshHard(); })
-        .catch(e => console.warn('Galería:', e));
+      cacheLuegoServidor(db.collection('eventos'), snap => {
+        renderEventos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        refrescarAOS();
+        cargarAfiches(db);
+        if (!snap.metadata.fromCache) iniciarGaleria();
+      }).catch(e => {
+        console.warn('Eventos:', e);
+        $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Recarga la página en unos segundos.</p>';
+      }).finally(iniciarGaleria);
     })();
 
     /* ===== NAV AL HACER SCROLL ===== */
@@ -759,18 +810,18 @@
       setVh(); window.addEventListener('resize', setVh);
     })();
 
-    const esMovil = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent);
-    const sinEfectos = esMovil || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const sinEfectos = window.innerWidth < 700 || /Mobi|Android/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-    /* ===== PARTÍCULAS (canvas, solo computadora) ===== */
+    /* ===== PARTÍCULAS (canvas) ===== */
     (function(){
-      if (sinEfectos || esMovil) return;
+      if (sinEfectos) return;
       const canvas = document.createElement('canvas');
       $('particles').appendChild(canvas);
       const ctx = canvas.getContext('2d');
       let w, h;
       function setSize(){
-        const dpr = Math.min(esMovil ? 2 : 3, Math.max(1, window.devicePixelRatio || 1));
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
         w = window.innerWidth; h = window.innerHeight;
         canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
         canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -780,7 +831,7 @@
       let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(setSize, 120); });
 
       const parts = [];
-      const MAX = esMovil ? 8 : Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
+      const MAX = Math.floor(Math.max(8, Math.min(20, window.innerWidth / 80)));
       function spawn(){
         const mx = w * 0.08;
         parts.push({ x: mx + Math.random() * (w - mx * 2), y: h * (0.82 + Math.random() * 0.12),
@@ -814,6 +865,31 @@
       requestAnimationFrame(loop);
     })();
 
+    /* ===== PARTÍCULAS (DOM) ===== */
+    (function(){
+      if (sinEfectos) return;
+      const container = document.querySelector('.fire-particles');
+      let alive = 0, running = true;
+      document.addEventListener('visibilitychange', () => { running = !document.hidden; });
+      const rand = (a, b) => Math.random() * (b - a) + a;
+      (function create(){
+        if (running && alive < 14){
+          const el = document.createElement('span');
+          el.className = 'particle';
+          const size = Math.round(rand(4, 18));
+          el.style.width = el.style.height = size + 'px';
+          el.style.left = (Math.random() * 100) + '%';
+          el.style.setProperty('--tx', (Math.random() * 28 - 14).toFixed(1) + 'px');
+          el.style.setProperty('--mid-scale', rand(0.85, 1.02).toFixed(2));
+          el.style.setProperty('--end-scale', rand(1.02, 1.22).toFixed(2));
+          el.style.animation = `fireRiseSubtle ${Math.floor(rand(3000, 5200))}ms ease-out forwards`;
+          alive++;
+          container.appendChild(el);
+          el.addEventListener('animationend', () => { el.remove(); alive--; }, { once: true });
+        }
+        setTimeout(create, Math.floor(rand(420, 1400)));
+      })();
+    })();
 
     /* ===== RIPPLE EN BOTONES ===== */
     document.addEventListener('pointerdown', e => {
