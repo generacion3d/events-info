@@ -29,6 +29,47 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
 
+  <script src="firebase-config.js"></script>
+  <script>
+    /* ===== DATOS: lectura directa de Firestore (API REST), sin cargar el SDK pesado ===== */
+    (function(){
+      const CFG = window.FIREBASE_CONFIG || {};
+      const BASE = `https://firestore.googleapis.com/v1/projects/${CFG.projectId}/databases/(default)/documents`;
+      const valor = v => {
+        if (!v) return undefined;
+        if ('stringValue' in v) return v.stringValue;
+        if ('integerValue' in v) return Number(v.integerValue);
+        if ('doubleValue' in v) return v.doubleValue;
+        if ('booleanValue' in v) return v.booleanValue;
+        if ('timestampValue' in v) return v.timestampValue;
+        if ('nullValue' in v) return null;
+        if ('mapValue' in v) return campos(v.mapValue.fields || {});
+        if ('arrayValue' in v) return (v.arrayValue.values || []).map(valor);
+      };
+      const campos = f => { const o = {}; for (const k in f) o[k] = valor(f[k]); return o; };
+      const aDoc = d => ({ id: d.name.split('/').pop(), ...campos(d.fields || {}) });
+      async function api(ruta, extra = ''){
+        const r = await fetch(`${BASE}/${ruta}?key=${encodeURIComponent(CFG.apiKey)}${extra}`);
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('Firestore respondió ' + r.status);
+        return r.json();
+      }
+      const CAMPOS_EVENTO = ['titulo','descripcion','fecha','fechaTexto','botonTexto','botonLink','hora','horaFin','lugar','mapsLink','tieneAfiche','aficheVer']
+        .map(c => '&mask.fieldPaths=' + c).join('');
+
+      window.G3D = {
+        eventos: () => api('eventos', '&pageSize=300' + CAMPOS_EVENTO).then(j => ((j && j.documents) || []).map(aDoc)),
+        config:  () => api('config/sitio').then(j => j ? campos(j.fields || {}) : {}),
+        galeria: () => api('galeria', '&pageSize=60').then(j => ((j && j.documents) || []).map(aDoc).sort((a, b) => (a.orden || 0) - (b.orden || 0))),
+        afiche:  id => api('afiches/' + encodeURIComponent(id)).then(j => j ? (campos(j.fields || {}).imagen || '') : '')
+      };
+      // Se piden YA, mientras el navegador sigue armando la página
+      window.G3D.pedidos = { eventos: window.G3D.eventos(), config: window.G3D.config() };
+      window.G3D.pedidos.eventos.catch(() => {});
+      window.G3D.pedidos.config.catch(() => {});
+    })();
+  </script>
+
   <style>
     :root {
       --bg: #0d0a0a;
@@ -85,6 +126,12 @@
     .title span{color:var(--accent);text-shadow:0 0 45px rgba(255,115,7,.35)}
     .subtitle{color:var(--accent-2);font-weight:800;letter-spacing:5px;font-size:.85rem;text-transform:uppercase;margin-top:8px}
     .actions{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+    @keyframes entrar{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+    .hero .logo,.hero .kicker,.hero .title,.hero .subtitle,.hero .actions{animation:entrar .7s var(--ease) both}
+    .hero .kicker{animation-delay:.08s}
+    .hero .title{animation-delay:.16s}
+    .hero .subtitle{animation-delay:.26s}
+    .hero .actions{animation-delay:.36s}
 
     /* Cuenta regresiva */
     .countdown{display:block;width:min(560px,100%);margin-top:10px;padding:18px 20px 20px;border-radius:22px;background:rgba(10,8,8,.55);border:1px solid rgba(184,253,0,.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .3s var(--ease),border-color .3s}
@@ -246,7 +293,7 @@
     }
     @media (prefers-reduced-motion: reduce){
       .fire-particles{display:none}
-      .fire-layer,.marquee-track,.cd-live,.event-flyer.cargando{animation:none}
+      .fire-layer,.marquee-track,.cd-live,.event-flyer.cargando,.hero .logo,.hero .kicker,.hero .title,.hero .subtitle,.hero .actions{animation:none}
       html{scroll-behavior:auto}
     }
     .sin-aos [data-aos]{opacity:1 !important;transform:none !important}
@@ -276,12 +323,12 @@
   <!-- HERO -->
   <header class="hero" role="banner">
     <div class="hero__spot" aria-hidden="true"></div>
-    <img src="assets/images/logo.jpg" alt="Generación 3D" class="logo" fetchpriority="high" data-aos="fade-down" data-aos-duration="1000">
+    <img src="assets/images/logo.jpg" alt="Generación 3D" class="logo" fetchpriority="high">
 
     <div class="hero-bottom">
-      <div class="kicker" data-aos="fade-up">MOVIMIENTO JUVENIL</div>
-      <h1 class="title" data-aos="zoom-in" data-aos-delay="150">GENERACIÓN <span>3D</span></h1>
-      <div class="subtitle" data-aos="fade-up" data-aos-delay="300">DIFERENTE • DESTACA • DA MÁS</div>
+      <div class="kicker">MOVIMIENTO JUVENIL</div>
+      <h1 class="title">GENERACIÓN <span>3D</span></h1>
+      <div class="subtitle">DIFERENTE • DESTACA • DA MÁS</div>
 
       <a class="countdown" id="countdown" href="#eventos" hidden>
         <span class="cd-label"><span class="cd-live"></span>Próximo evento</span>
@@ -415,16 +462,16 @@
     <div class="lb-count" id="lbCount"></div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" defer></script>
   <script>
-    // Si la librería de animaciones no carga, la página sigue funcionando igual
-    const hayAOS = typeof window.AOS !== 'undefined';
-    if (hayAOS) AOS.init({ duration: 700, once: true });
-    else document.documentElement.classList.add('sin-aos');
-    const refrescarAOS = () => { if (hayAOS) refrescarAOS(); };
+    // Animaciones de scroll: se activan cuando la librería termina de llegar (no frena nada)
+    let aosListo = false;
+    const refrescarAOS = () => { if (aosListo) window.AOS.refreshHard(); };
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AOS){ window.AOS.init({ duration: 700, once: true }); aosListo = true; }
+      else document.documentElement.classList.add('sin-aos');
+    });
+    setTimeout(() => { if (!aosListo) document.documentElement.classList.add('sin-aos'); }, 2500);
     const $ = id => document.getElementById(id);
     $('year').textContent = new Date().getFullYear();
 
@@ -648,27 +695,21 @@
     });
 
     // Los afiches se descargan DESPUÉS de mostrar el texto de los eventos
-    function cargarAfiches(db){
+    function cargarAfiches(){
       document.querySelectorAll('.event-flyer.cargando').forEach(btn => {
         const id = btn.dataset.ev, clave = btn.dataset.clave;
-        const poner = src => {
-          document.querySelectorAll('.event-flyer').forEach(b => {
-            if (b.dataset.clave !== clave) return;
-            b.querySelector('img').src = src;
-            b.classList.remove('cargando');
-          });
-        };
-        const quitar = () => document.querySelectorAll('.event-flyer').forEach(b => { if (b.dataset.clave === clave) b.remove(); });
+        const iguales = () => Array.from(document.querySelectorAll('.event-flyer')).filter(b => b.dataset.clave === clave);
+        const poner = src => iguales().forEach(b => { b.querySelector('img').src = src; b.classList.remove('cargando'); });
 
         if (afichesCache[clave]) return poner(afichesCache[clave]);
         if (afichesPendientes.has(clave)) return;
         afichesPendientes.add(clave);
 
-        cacheLuegoServidor(db.collection('afiches').doc(id), snap => {
-          const src = snap.exists ? imagenSegura(snap.data().imagen) : '';
+        conMemoria('afiche:' + clave, () => G3D.afiche(id), src => {
+          src = imagenSegura(src);
           if (src){ afichesCache[clave] = src; poner(src); }
-          else if (!snap.metadata.fromCache) quitar();
-        }).catch(quitar);
+        }).then(src => { if (!imagenSegura(src)) iguales().forEach(b => b.remove()); })
+          .catch(() => { if (!afichesCache[clave]) iguales().forEach(b => b.remove()); });
       });
     }
 
@@ -748,51 +789,65 @@
       }
     }
 
-    /* ===== CARGA DESDE FIRESTORE ===== */
-    // Muestra primero lo guardado en el teléfono (desde la 2.ª visita es instantáneo)
-    // y después actualiza con lo último de internet.
-    function cacheLuegoServidor(ref, pintar){
-      return ref.get({ source: 'cache' })
-        .then(snap => { if (snap.exists !== false && snap.empty !== true) pintar(snap); })
-        .catch(() => {})
-        .then(() => ref.get())
-        .then(pintar);
+    /* ===== CARGA DE DATOS ===== */
+    // Guarda la última versión en el navegador: desde la 2.ª visita se muestra al instante
+    // y luego se actualiza en silencio con lo nuevo.
+    const MEMO = 'g3d-v2';
+    async function leerMemoria(clave){
+      try {
+        if (window.caches){
+          const r = await (await caches.open(MEMO)).match('/__g3d/' + clave);
+          return r ? r.json() : null;
+        }
+        const t = localStorage.getItem(MEMO + ':' + clave);
+        return t ? JSON.parse(t) : null;
+      } catch (e) { return null; }
+    }
+    async function guardarMemoria(clave, datos){
+      try {
+        const txt = JSON.stringify(datos);
+        if (window.caches){
+          await (await caches.open(MEMO)).put('/__g3d/' + clave, new Response(txt, { headers: { 'Content-Type': 'application/json' } }));
+        } else if (txt.length < 1500000){
+          localStorage.setItem(MEMO + ':' + clave, txt);
+        }
+      } catch (e) {}
+    }
+    function conMemoria(clave, pedir, pintar){
+      let mostrado = false;
+      leerMemoria(clave).then(d => { if (d != null && !mostrado){ mostrado = true; pintar(d, true); } });
+      const red = (typeof pedir === 'function' ? pedir() : pedir);
+      return red.then(d => { mostrado = true; pintar(d, false); guardarMemoria(clave, d); return d; });
     }
 
-    (async function cargarContenido(){
-      let db;
-      try {
-        firebase.initializeApp(window.FIREBASE_CONFIG);
-        db = firebase.firestore();
-        try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* sin caché en este navegador; sigue normal */ }
-      } catch (e) {
-        console.error('Firebase no se pudo inicializar:', e);
-        renderEventos([]);
-        return;
-      }
+    (function cargarContenido(){
+      if (!window.G3D){ renderEventos([]); return; }
+      const P = G3D.pedidos;
 
-      cacheLuegoServidor(db.collection('config').doc('sitio'), d => { if (d.exists) aplicarConfig(d.data()); })
-        .catch(e => console.warn('Config:', e));
+      let firmaConfig = '';
+      conMemoria('config', P.config, c => {
+        const f = JSON.stringify(c); if (f === firmaConfig) return; firmaConfig = f;
+        aplicarConfig(c || {});
+      }).catch(e => console.warn('Config:', e));
 
-      // La galería (lo más pesado) arranca cuando los eventos ya están en pantalla
       let galeriaIniciada = false;
       const iniciarGaleria = () => {
         if (galeriaIniciada) return;
         galeriaIniciada = true;
-        cacheLuegoServidor(db.collection('galeria').orderBy('orden'), snap => {
-          renderGaleria(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-          refrescarAOS();
-        }).catch(e => console.warn('Galería:', e));
+        conMemoria('galeria', G3D.galeria, fotos => { renderGaleria(fotos || []); refrescarAOS(); })
+          .catch(e => console.warn('Galería:', e));
       };
 
-      cacheLuegoServidor(db.collection('eventos'), snap => {
-        renderEventos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      let firmaEventos = '', hayEventos = false;
+      conMemoria('eventos', P.eventos, (lista, deMemoria) => {
+        const f = JSON.stringify(lista); if (f === firmaEventos) return; firmaEventos = f;
+        hayEventos = true;
+        renderEventos(lista || []);
         refrescarAOS();
-        cargarAfiches(db);
-        if (!snap.metadata.fromCache) iniciarGaleria();
+        cargarAfiches();
       }).catch(e => {
         console.warn('Eventos:', e);
-        $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Recarga la página en unos segundos.</p>';
+        if (!hayEventos) $('eventsGrid').innerHTML = '<p class="events-empty muted">No pudimos cargar los eventos. Revisa tu conexión y recarga la página.</p>';
       }).finally(iniciarGaleria);
     })();
 
